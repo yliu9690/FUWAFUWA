@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圓滾滾皮蛋</title>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; background: #FAF8F5; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #1D4E56; }
+
+        /* 作品分頁切換按鈕 */
+        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 20px; border: 2px solid #1D4E56; background: white; color: #1D4E56; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .tab-btn.active, .tab-btn:hover { background: #1D4E56; color: white; }
+
+        /* 主版面：左邊展示區、右邊購物車 */
+        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        
+        /* 圖片展示區（大合照與單張圖片共用） */
+        .preview-area { text-align: center; min-height: 260px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #fdfdfd; border: 1px dashed #ddd; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+        .display-img { max-width: 100%; max-height: 450px; border-radius: 12px; transition: 0.2s; }
+
+        /* 角色選擇按鈕 */
+        .char-buttons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 15px; }
+        .char-btn { padding: 8px 14px; border: 1px solid #ccc; background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .char-btn:hover { border-color: #E86A48; color: #E86A48; }
+        .char-btn.selected { background: #E86A48; color: white; border-color: #E86A48; font-weight: bold; }
+
+        /* 加入購物車按鈕 */
+        .add-btn { width: 100%; padding: 12px; background: #E86A48; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; display: none; }
+        .add-btn:hover { background: #d45836; }
+
+        /* 購物車清單 */
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+        .del-btn { background: #ffeded; color: #d9534f; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+        .total-box { margin-top: 15px; text-align: right; font-size: 18px; font-weight: bold; color: #1D4E56; }
+        .checkout-btn { width: 100%; padding: 12px; background: #1D4E56; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>圓滾滾皮蛋</h1>
+
+    <!-- 1. 選擇作品分頁 (由 JS 自動產生) -->
+    <div class="tabs" id="series-tabs"></div>
+
+    <div class="main-grid">
+        <!-- 左側：作品展示與單項選購 -->
+        <div class="card">
+            <h3 id="series-title" style="margin-top:0; text-align:center;"></h3>
+            
+            <div class="preview-area">
+                <!-- 直接用這張 img 切換大合照與單張圖片 -->
+                <img id="main-display-img" class="display-img" src="" alt="商品圖片">
+                <p id="hint-text" style="color:#666; font-size:14px; margin:10px 0 0;">👆 點選下方角色查看單隻特寫</p>
+            </div>
+
+            <!-- 角色按鈕區 -->
+            <div class="char-buttons" id="char-list"></div>
+
+            <!-- 加入購物車按鈕 -->
+            <button id="add-to-cart-btn" class="add-btn" onclick="addToCart()">➕ 將此單品加入購物車</button>
+        </div>
+
+        <!-- 右側：購物車 -->
+        <div class="card">
+            <h3 style="margin-top:0;">🛒 我的購物車</h3>
+            <div id="cart-items">
+                <p style="color:#999; text-align:center;">購物車目前是空的喔！</p>
+            </div>
+            <div class="total-box">總金額：NT$ <span id="total-price">0</span></div>
+            <button class="checkout-btn" onclick="checkout()">確認送出訂單</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // ★ 商品資料庫：以後新增作品只要改這裡就好！★
+    // ==========================================
+    const productsData = [
+        {
+            seriesName: "北宋F4！！",
+            imageFile: "北宋F4圓滾滾.png", // 大合照檔名
+            price: 300,
+            characters: [
+                { name: "蘇軾", img: "蘇軾.png" },
+                { name: "歐陽修", img: "歐陽修.png" },
+                { name: "王安石", img: "王安石.png" },
+                { name: "司馬光", img: "司馬光.png" }
+            ]
+        },
+        {
+            seriesName: "元白！！",
+            imageFile: "元白圓滾滾", // 記得改成你第二張大合照的檔名（例如 元白圓滾滾.png）
+            price: 300,
+            characters: [
+                { name: "元稹", img: "元稹.png" },     // 記得確認資料夾裡有 元稹.png
+                { name: "白居易", img: "白居易.png" }  // 記得確認資料夾裡有 白居易.png
+            ]
+        }
+    ];
+
+    let currentSeriesIndex = 0;
+    let selectedChar = null;
+    let cart = [];
+
+    // 初始化網頁
+    function init() {
+        const tabsDiv = document.getElementById('series-tabs');
+        tabsDiv.innerHTML = "";
+        productsData.forEach((item, index) => {
+            const btn = document.createElement('button');
+            btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+            btn.innerText = item.seriesName;
+            btn.onclick = () => switchSeries(index);
+            tabsDiv.appendChild(btn);
+        });
+        switchSeries(0);
+    }
+
+    // 切換不同作品
+    function switchSeries(index) {
+        currentSeriesIndex = index;
+        selectedChar = null;
+        const series = productsData[index];
+
+        document.querySelectorAll('.tab-btn').forEach((b, i) => {
+            b.classList.toggle('active', i === index);
+        });
+
+        // 恢復顯示該作品的大合照
+        document.getElementById('series-title').innerText = `【${series.seriesName}】系列 - 單隻 NT$ ${series.price}`;
+        document.getElementById('main-display-img').src = series.imageFile;
+        
+        document.getElementById('add-to-cart-btn').style.display = 'none';
+        document.getElementById('hint-text').innerText = "👆 點選下方角色查看單隻特寫";
+
+        // 產生該作品的角色按鈕
+        const charList = document.getElementById('char-list');
+        charList.innerHTML = "";
+        series.characters.forEach((char, cIndex) => {
+            const btn = document.createElement('button');
+            btn.className = 'char-btn';
+            btn.innerText = char.name;
+            btn.onclick = () => selectCharacter(cIndex, btn);
+            charList.appendChild(btn);
+        });
+
+        // 加上一個「示意圖」的按鈕
+        const resetBtn = document.createElement('button');
+        resetBtn.className = 'char-btn';
+        resetBtn.style.background = '#eee';
+        resetBtn.innerText = '全圖鑑';
+        resetBtn.onclick = () => switchSeries(currentSeriesIndex);
+        charList.appendChild(resetBtn);
+    }
+
+    // 點選單一角色：直接切換成單隻圖片
+    function selectCharacter(charIndex, clickedBtn) {
+        const series = productsData[currentSeriesIndex];
+        selectedChar = series.characters[charIndex];
+
+        document.querySelectorAll('.char-btn').forEach(b => b.classList.remove('selected'));
+        clickedBtn.classList.add('selected');
+
+        // 直接讀取你在 characters 裡面設定的 img 檔名！
+        document.getElementById('main-display-img').src = selectedChar.img;
+        document.getElementById('hint-text').innerText = `目前檢視：【${series.seriesName} - ${selectedChar.name}】`;
+        
+        const addBtn = document.getElementById('add-to-cart-btn');
+        addBtn.style.display = 'block';
+        addBtn.innerText = `➕ 將「${selectedChar.name}」加入購物車 (NT$ ${series.price})`;
+    }
+
+    // 加入購物車
+    function addToCart() {
+        if (!selectedChar) return;
+        const series = productsData[currentSeriesIndex];
+        
+        const existing = cart.find(item => item.series === series.seriesName && item.name === selectedChar.name);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cart.push({
+                series: series.seriesName,
+                name: selectedChar.name,
+                price: series.price,
+                qty: 1
+            });
+        }
+        renderCart();
+    }
+
+    // 更新購物車畫面
+    function renderCart() {
+        const cartDiv = document.getElementById('cart-items');
+        if (cart.length === 0) {
+            cartDiv.innerHTML = '<p style="color:#999; text-align:center;">購物車目前是空的喔！</p>';
+            document.getElementById('total-price').innerText = '0';
+            return;
+        }
+
+        let html = '';
+        let total = 0;
+        cart.forEach((item, index) => {
+            const subtotal = item.price * item.qty;
+            total += subtotal;
+            html += `
+                <div class="cart-item">
+                    <div>
+                        <strong>${item.name}</strong> <span style="color:#888; font-size:12px;">(${item.series})</span><br>
+                        NT$ ${item.price} × ${item.qty} = <b>NT$ ${subtotal}</b>
+                    </div>
+                    <button class="del-btn" onclick="removeItem(${index})">刪除</button>
+                </div>
+            `;
+        });
+        cartDiv.innerHTML = html;
+        document.getElementById('total-price').innerText = total;
+    }
+
+    function removeItem(index) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+
+    function checkout() {
+        if (cart.length === 0) {
+            alert("購物車是空的，請選擇你要的皮蛋！");
+            return;
+        }
+        let summary = "🎉 訂單送出成功！明細如下：\n\n";
+        let total = 0;
+        cart.forEach(item => {
+            summary += `• [${item.series}] ${item.name} × ${item.qty} (NT$ ${item.price * item.qty})\n`;
+            total += item.price * item.qty;
+        });
+        summary += `\n總計金額：NT$ ${total}`;
+        alert(summary);
+        cart = [];
+        renderCart();
+    }
+
+    // 啟動網頁
+    init();
+</script>
+
+</body>
+</html>.container
